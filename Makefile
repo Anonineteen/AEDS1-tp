@@ -1,5 +1,5 @@
 CFLAGS=-Llib -Iinclude -no-pie 
-LIBS=-pthread -ldl -lm -lxcb -lX11 -l:libraylib.a 
+LIBS=-l:libraylib.a -pthread -ldl -lm -lxcb -lX11
 
 # Quando quiser adicionar um módulo novo, coloque
 # sempre $(CFLAGS) e $(LIBS) no final!
