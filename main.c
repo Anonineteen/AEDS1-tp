@@ -95,7 +95,7 @@ int main(void)
         if (game.gameover)
             break;
     }
-    while (!IsKeyDown(KEY_ENTER))
+    while (!IsKeyDown(KEY_ENTER) && !WindowShouldClose())
     {
         BeginDrawing();
         ClearBackground(RAYWHITE);
