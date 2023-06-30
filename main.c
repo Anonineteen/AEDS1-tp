@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 //----------------------------------------------------------------------------------
 // Some Defines
@@ -9,13 +10,25 @@
 #define STD_SIZE_Y 30
 #define SCREEN_BORDER 4
 
-typedef struct Hero
+typedef struct Tiro {
+
+    Rectangle pos;
+    Color color;
+    int speed;
+    int direcaox;
+    int direcaoy;
+} Tiro;
+
+typedef struct Player
 {
     Rectangle pos;
     Color color;
     int speed;
     int special;
-} Hero;
+    int direcaox;
+    int direcaoy;
+    Tiro tiro;
+} Player;
 
 typedef struct Enemy
 {
@@ -48,7 +61,7 @@ typedef struct Game
     Map maps[10];
     int num_maps;
     int curr_map;
-    Hero hero;
+    Player player;
     int screenWidth;
     int screenHeight;
     int gameover;
@@ -74,6 +87,9 @@ int barrier_collision(Map *m, Rectangle *t);
 void map0_setup(Game *g);
 void map1_setup(Game *g);
 void map2_setup(Game *g);
+void desenha_tiro(Game *g);
+void cria_tiro (Game *g);
+void movimenta_tiro (Game *g);
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -84,7 +100,7 @@ int main(void)
     game.screenWidth = 800;
     game.screenHeight = 450;
 
-    InitWindow(game.screenWidth, game.screenHeight, "Aedsinho's quest");
+    InitWindow(game.screenWidth, game.screenHeight, "o jogo");
     SetTargetFPS(60);
 
     InitGame(&game);
@@ -114,10 +130,11 @@ void InitGame(Game *g)
 
     g->curr_map = 0;
     g->num_maps = 10;
-    g->hero.pos = (Rectangle){150, 300, STD_SIZE_X, STD_SIZE_Y};
-    g->hero.color = BLACK;
-    g->hero.speed = 6;
-    g->hero.special = 0;
+    g->player.pos = (Rectangle){150, 300, STD_SIZE_X, STD_SIZE_Y};
+    g->player.color = BLACK;
+    g->player.speed = 6;
+    g->player.special = 0;
+    g->player.direcaox = 1;
     g->gameover = 0;
     map0_setup(g);
     map1_setup(g);
@@ -128,6 +145,8 @@ void InitGame(Game *g)
 void UpdateGame(Game *g)
 {
     update_hero_pos(g);
+    cria_tiro(g);
+    movimenta_tiro(g);
 
     Map *map = &g->maps[g->curr_map];
     for (int i; i < map->num_enemies; i++)
@@ -135,10 +154,10 @@ void UpdateGame(Game *g)
         if (!map->enemies[i].draw_enemy)
             continue;
         update_enemy_pos(g, &map->enemies[i]);
-        if (!CheckCollisionRecs(g->hero.pos, map->enemies[i].pos))
+        if (!CheckCollisionRecs(g->player.pos, map->enemies[i].pos))
             continue;
 
-        if (g->hero.special)
+        if (g->player.special)
         {
             map->enemies[i].draw_enemy = 0;
             if (map->enemies[i].has_key)
@@ -150,26 +169,27 @@ void UpdateGame(Game *g)
         g->gameover = 1;
     }
 
-    if (CheckCollisionRecs(g->hero.pos, map->special_item) && map->draw_special_item)
+
+    if (CheckCollisionRecs(g->player.pos, map->special_item) && map->draw_special_item)
     {
-        g->hero.pos.width += 10;
-        g->hero.pos.height += 10;
-        g->hero.special = 1;
+        g->player.pos.width += 10;
+        g->player.pos.height += 10;
+        g->player.special = 1;
         map->draw_special_item = 0;
     }
 
-    if (CheckCollisionRecs(g->hero.pos, map->door) && !map->door_locked)
+    if (CheckCollisionRecs(g->player.pos, map->door) && !map->door_locked)
     {
         g->curr_map = map->next_map;
-        g->hero.pos = (Rectangle){50, 200, STD_SIZE_X, STD_SIZE_Y};
-        g->hero.special = 0;
+        g->player.pos = (Rectangle){50, 200, STD_SIZE_X, STD_SIZE_Y};
+        g->player.special = 0;
     }
 
-    if (map->prev_map != -1 && CheckCollisionRecs(g->hero.pos, map->prev_door))
+    if (map->prev_map != -1 && CheckCollisionRecs(g->player.pos, map->prev_door))
     {
         g->curr_map = map->prev_map;
-        g->hero.pos = (Rectangle){g->screenWidth - 50, g->screenHeight / 3, STD_SIZE_X, STD_SIZE_Y};
-        g->hero.special = 0;
+        g->player.pos = (Rectangle){g->screenWidth - 50, g->screenHeight / 3, STD_SIZE_X, STD_SIZE_Y};
+        g->player.special = 0;
     }
 }
 
@@ -182,8 +202,9 @@ void DrawGame(Game *g)
     DrawRectangle(0, 0, g->screenWidth, g->screenHeight, GRAY);
     draw_borders(g);
     draw_map(g);
+    desenha_tiro(g);
 
-    DrawRectangleRec(g->hero.pos, g->hero.color);
+    DrawRectangleRec(g->player.pos, g->player.color);
 
     EndDrawing();
 }
@@ -235,37 +256,81 @@ void draw_map(Game *g)
 void update_hero_pos(Game *g)
 {
 
-    Hero *h = &g->hero;
+    Player *p = &g->player;
     Map *m = &g->maps[g->curr_map];
+
+    int direcaox = 0, direcaoy = 0;
 
     if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT))
     {
-        if (h->pos.x > SCREEN_BORDER)
-            h->pos.x -= h->speed;
-        if (barrier_collision(m, &h->pos))
-            h->pos.x += h->speed;
+        direcaox += -1;
     }
-    else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+   else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
     {
-        if (h->pos.x + h->pos.width < g->screenWidth - SCREEN_BORDER)
-            h->pos.x += h->speed;
-        if (barrier_collision(m, &h->pos))
-            h->pos.x -= h->speed;
+        direcaox += 1;
     }
-    else if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+  else if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
     {
-        if (h->pos.y > SCREEN_BORDER)
-            h->pos.y -= h->speed;
-        if (barrier_collision(m, &h->pos))
-            h->pos.y += h->speed;
+        direcaoy += -1;
     }
-    else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
+  else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
     {
-        if (h->pos.y + h->pos.height < g->screenHeight - SCREEN_BORDER)
-            h->pos.y += h->speed;
-        if (barrier_collision(m, &h->pos))
-            h->pos.y -= h->speed;
+        direcaoy += 1;
     }
+    if(!(direcaox==0 && direcaoy==0)){
+        p->direcaoy = direcaoy;
+        p->direcaox = direcaox;
+    }
+
+    int novo_x = p->pos.x + p->speed * direcaox;
+    int novo_y = p->pos.y + p->speed * direcaoy;
+    Rectangle nova_posicao = {.x=novo_x, .y=novo_y, .width=p->pos.width, .height=p->pos.height};
+    int coliding = barrier_collision(m, &nova_posicao);
+    
+    if(coliding) return;
+    if (novo_y >= SCREEN_BORDER && novo_y + p->pos.height <= g->screenHeight - SCREEN_BORDER) {
+        p->pos.y = novo_y;
+    }
+    if (novo_x >= SCREEN_BORDER && novo_x + p->pos.width <= g->screenWidth - SCREEN_BORDER) {
+        p->pos.x = novo_x;
+    }
+}
+
+void cria_tiro (Game *g){
+
+    if(IsKeyPressed(KEY_SPACE)){
+        Tiro novo_tiro;
+        novo_tiro.pos.x = g->player.pos.x;
+        novo_tiro.pos.y = g->player.pos.y;
+        novo_tiro.pos.width = 10;
+        novo_tiro.pos.height = 10;
+        novo_tiro.color = BLUE;
+        novo_tiro.speed = g->player.speed*2;
+        novo_tiro.direcaox = g->player.direcaox;
+        novo_tiro.direcaoy = g->player.direcaoy;
+        g->player.tiro = novo_tiro;
+    }
+}
+
+void movimenta_tiro (Game *g){
+
+    Tiro* tiro = &g->player.tiro;
+    int distancia1 = tiro->direcaox * tiro->speed;
+    int distancia2 = tiro->direcaoy * tiro->speed;
+    tiro->pos.x += distancia1;
+    tiro->pos.y += distancia2;
+}
+
+void atualiza_tiro (Game *g){
+
+    Tiro* tiro = &g->player.tiro;
+}
+
+void desenha_tiro(Game *g){
+
+    Tiro tiro = g->player.tiro;
+
+    DrawRectangle(tiro.pos.x, tiro.pos.y,tiro.pos.width,tiro.pos.height,tiro.color);
 }
 
 void update_enemy_pos(Game *g, Enemy *e)
