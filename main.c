@@ -3,93 +3,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-//----------------------------------------------------------------------------------
-// Some Defines
-//----------------------------------------------------------------------------------
-#define STD_SIZE_X 30
-#define STD_SIZE_Y 30
-#define SCREEN_BORDER 4
-
-typedef struct Tiro {
-
-    Rectangle pos;
-    Color color;
-    int speed;
-    int direcaox;
-    int direcaoy;
-} Tiro;
-
-typedef struct Player
-{
-    Rectangle pos;
-    Color color;
-    int speed;
-    int special;
-    int direcaox;
-    int direcaoy;
-    Tiro tiro;
-} Player;
-
-typedef struct Enemy
-{
-    Rectangle pos;
-    Color color;
-    int speed;
-    int direction;
-    int draw_enemy;
-    int has_key;
-} Enemy;
-
-typedef struct Map
-{
-    Rectangle barriers[10];
-    int num_barriers;
-    Rectangle door;
-    Rectangle prev_door;
-    Color color;
-    Enemy enemies[10];
-    int num_enemies;
-    Rectangle special_item;
-    int draw_special_item;
-    int door_locked;
-    int next_map;
-    int prev_map;
-} Map;
-
-typedef struct Game
-{
-    Map maps[10];
-    int num_maps;
-    int curr_map;
-    Player player;
-    int screenWidth;
-    int screenHeight;
-    int gameover;
-} Game;
-
-//------------------------------------------------------------------------------------
-// Module Functions Declaration (local)
-//------------------------------------------------------------------------------------
-void InitGame(Game *g);        // Initialize game
-void UpdateGame(Game *g);      // Update game (one frame)
-void DrawGame(Game *g);        // Draw game (one frame)
-void UpdateDrawFrame(Game *g); // Update and Draw (one frame)
-
-//------------------------------------------------------------------------------------
-// Auxiliar Functions Declaration
-//------------------------------------------------------------------------------------
-void draw_borders(Game *g);
-void draw_map(Game *g);
-void update_enemy_pos(Game *g, Enemy *e);
-void update_hero_pos(Game *g);
-
-int barrier_collision(Map *m, Rectangle *t);
-void map0_setup(Game *g);
-void map1_setup(Game *g);
-void map2_setup(Game *g);
-void desenha_tiro(Game *g);
-void cria_tiro (Game *g);
-void movimenta_tiro (Game *g);
+#include "coisas.h"
+#include "tiro.h"
 
 //------------------------------------------------------------------------------------
 // Program main entry point
@@ -135,20 +50,34 @@ void InitGame(Game *g)
     g->player.speed = 6;
     g->player.special = 0;
     g->player.direcaox = 1;
+    g->player.tiro.existe = false;
     g->gameover = 0;
     map0_setup(g);
     map1_setup(g);
     map2_setup(g);
 }
 
+// Mata o inimigo, e se ele tiver a chave, abre a porta
+void mata_inimigo(Enemy* inimigo, Map* map) {
+    inimigo->draw_enemy = 0;
+    if (inimigo->has_key)
+    {
+        map->door_locked = 0;
+    }
+}
+
 // Update game (one frame)
 void UpdateGame(Game *g)
 {
     update_hero_pos(g);
-    cria_tiro(g);
-    movimenta_tiro(g);
+    jogador_atira(&g->player);
+    movimenta_tiro(&g->player.tiro);
 
     Map *map = &g->maps[g->curr_map];
+    atualiza_tiro(&g->player.tiro, map, g->screenWidth, g->screenHeight);
+
+    colide_inimigo_tiro(&g->player.tiro, map);
+
     for (int i; i < map->num_enemies; i++)
     {
         if (!map->enemies[i].draw_enemy)
@@ -157,13 +86,10 @@ void UpdateGame(Game *g)
         if (!CheckCollisionRecs(g->player.pos, map->enemies[i].pos))
             continue;
 
+        // Se o player tiver comido a bolinha, mata o inimigo
         if (g->player.special)
         {
-            map->enemies[i].draw_enemy = 0;
-            if (map->enemies[i].has_key)
-            {
-                map->door_locked = 0;
-            }
+            mata_inimigo(&map->enemies[i], map);
             continue;
         }
         g->gameover = 1;
@@ -202,7 +128,7 @@ void DrawGame(Game *g)
     DrawRectangle(0, 0, g->screenWidth, g->screenHeight, GRAY);
     draw_borders(g);
     draw_map(g);
-    desenha_tiro(g);
+    desenha_tiro(&g->player.tiro);
 
     DrawRectangleRec(g->player.pos, g->player.color);
 
@@ -265,18 +191,18 @@ void update_hero_pos(Game *g)
     {
         direcaox += -1;
     }
-   else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
-    {
+    else if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT))
+        {
         direcaox += 1;
     }
-  else if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
-    {
+    else if (IsKeyDown(KEY_W) || IsKeyDown(KEY_UP))
+        {
         direcaoy += -1;
     }
-  else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
+    else if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN))
     {
-        direcaoy += 1;
-    }
+    direcaoy += 1;
+}
     if(!(direcaox==0 && direcaoy==0)){
         p->direcaoy = direcaoy;
         p->direcaox = direcaox;
@@ -294,43 +220,6 @@ void update_hero_pos(Game *g)
     if (novo_x >= SCREEN_BORDER && novo_x + p->pos.width <= g->screenWidth - SCREEN_BORDER) {
         p->pos.x = novo_x;
     }
-}
-
-void cria_tiro (Game *g){
-
-    if(IsKeyPressed(KEY_SPACE)){
-        Tiro novo_tiro;
-        novo_tiro.pos.x = g->player.pos.x;
-        novo_tiro.pos.y = g->player.pos.y;
-        novo_tiro.pos.width = 10;
-        novo_tiro.pos.height = 10;
-        novo_tiro.color = BLUE;
-        novo_tiro.speed = g->player.speed*2;
-        novo_tiro.direcaox = g->player.direcaox;
-        novo_tiro.direcaoy = g->player.direcaoy;
-        g->player.tiro = novo_tiro;
-    }
-}
-
-void movimenta_tiro (Game *g){
-
-    Tiro* tiro = &g->player.tiro;
-    int distancia1 = tiro->direcaox * tiro->speed;
-    int distancia2 = tiro->direcaoy * tiro->speed;
-    tiro->pos.x += distancia1;
-    tiro->pos.y += distancia2;
-}
-
-void atualiza_tiro (Game *g){
-
-    Tiro* tiro = &g->player.tiro;
-}
-
-void desenha_tiro(Game *g){
-
-    Tiro tiro = g->player.tiro;
-
-    DrawRectangle(tiro.pos.x, tiro.pos.y,tiro.pos.width,tiro.pos.height,tiro.color);
 }
 
 void update_enemy_pos(Game *g, Enemy *e)
@@ -486,3 +375,4 @@ void map2_setup(Game *g)
     g->maps[2].prev_map = 1;
     g->maps[2].next_map = 3;
 }
+

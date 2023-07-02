@@ -4,8 +4,11 @@ LIBS=-l:libraylib.a -pthread -ldl -lm -lxcb -lX11
 # Quando quiser adicionar um módulo novo, coloque
 # sempre $(CFLAGS) e $(LIBS) no final!
 
-jogo: main.c
-	gcc main.c -o jogo $(CFLAGS) $(LIBS)
+jogo: main.c tiro.o
+	gcc main.c tiro.o -o jogo $(CFLAGS) $(LIBS)
+
+tiro.o: tiro.c tiro.h
+	gcc -c tiro.c $(CFLAGS) $(LIBS)
 
 # O comando `make run` vai compilar e rodar seu código!
 # Não se esqueca de colocar seu módulo depois de `jogo`
@@ -16,7 +19,7 @@ run: jogo
 # limpar a pasta de artefatos de compilação, etc.
 # Não se esqueça de adicionar seu módulo depois de `jogo`
 clean:
-	rm jogo
+	rm jogo *.o
 
 .PHONY: run clean
 
