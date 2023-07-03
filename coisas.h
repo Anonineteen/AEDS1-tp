@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include "raylib.h"
 
+typedef struct Pontuacao {
+    char nome[20];
+    int pontos;
+} Pontuacao;
+
 //----------------------------------------------------------------------------------
 // Some Defines
 //----------------------------------------------------------------------------------
@@ -27,6 +32,7 @@ typedef struct Player
 {
     Rectangle pos;
     Color color;
+    int pontos;
     int speed;
     int special;
     int direcaox;
@@ -82,7 +88,6 @@ typedef struct Game
 void InitGame(Game *g);        // Initialize game
 void UpdateGame(Game *g);      // Update game (one frame)
 void DrawGame(Game *g);        // Draw game (one frame)
-void UpdateDrawFrame(Game *g); // Update and Draw (one frame)
 
 //------------------------------------------------------------------------------------
 // Auxiliar Functions Declaration

@@ -3,14 +3,51 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "coisas.h"
 #include "tiro.h"
 
+void DesenhaTextoCentralizado(char* texto, int x, int y, int fonte, Color cor) {
+    // Estou dividindo por esse valor porque nao centraliza direito se for só por 2
+    DrawText(texto, x - MeasureText(texto, fonte)/2.7, y-fonte/2.0, fonte, cor);
+}
+
+char* NomeJogador(int largura, int altura) {
+    const int tam_max = 200;
+    char* nome = malloc(tam_max);
+    nome[0] = '\0';
+    while(!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        DesenhaTextoCentralizado("INSIRA SEU NOME:", largura/2.0, 100, 30, WHITE);
+        for(int codigo = GetKeyPressed(); codigo != 0; codigo = GetKeyPressed())
+        { 
+            int tam = strlen(nome);
+            if(tam < tam_max-2 && ('A' <= codigo && codigo <= 'Z') ||
+               ('0' <= codigo && codigo <= '9') || (codigo == ' ')) {
+                nome[tam] = GetCharPressed();
+                if(nome[tam] == ' ') {
+                    nome[tam] = '_';
+                }
+                nome[tam+1] = '\0';
+            } else if (codigo == KEY_BACKSPACE && tam > 0){
+                nome[tam-1] = '\0';
+            } else if (codigo == KEY_ENTER) {
+                return nome;
+            }
+        }
+        DesenhaTextoCentralizado(nome, largura/2.0, 150, 30, YELLOW);
+        EndDrawing();
+    }
+    return nome;
+}
+
 void GamePlay(Game* g) {
     while (!WindowShouldClose())
     {
-        UpdateDrawFrame(g);
+        UpdateGame(g);
+        DrawGame(g);
         if (g->gameover) {
             break;
         }
@@ -18,15 +55,54 @@ void GamePlay(Game* g) {
     }
 }
 
-void GameOver(Game* g) {
+int compara_pontuacao(Pontuacao* a, Pontuacao* b) {
+    return a->pontos - b->pontos;
+}
+
+void GameOver(Game* g, char* nome) {
+    Pontuacao placar[10];
+    int jogadores = 0;
+    FILE* ranking = fopen("pontacoes.txt", "r");
+    if(ranking != NULL) {
+        for(int i = 0; i < 10-1; i++) {
+            int fim = fscanf(ranking, "%s %d", placar[i].nome, &placar[i].pontos);
+            if(fim == EOF) {
+                jogadores = i;
+                break;
+            }
+        }
+        fclose(ranking);
+    }
+
+    // Adiciona jogador atual
+    strcpy(placar[jogadores].nome, nome);
+    placar[jogadores].pontos = g->player.pontos;
+    jogadores ++;
+
+    // Ordena placar
+    qsort(placar, jogadores, sizeof(Pontuacao), compara_pontuacao);
+
+    // Salva placar
+    ranking = fopen("pontacoes.txt", "w");
+    for(int i = 0; i < jogadores; i++) {
+        int fim = fprintf(ranking, "%s %d\n", placar[i].nome, placar[i].pontos);
+    }
+    fclose(ranking);
+
     while (!IsKeyDown(KEY_ENTER) && !WindowShouldClose())
     {
         BeginDrawing();
-        ClearBackground(RAYWHITE);
-        DrawText("GAME OVER", GetScreenWidth() / 2 - MeasureText("GAME OVER", 20) / 2, GetScreenHeight() / 2 - 50, 20, BLACK);
+        ClearBackground(BLACK);
+        int top3 = jogadores;
+        if(top3 > 3) {
+            top3 = 3;
+        }
+        for(int i = 0; i < 3; i++) {
+            DesenhaTextoCentralizado(TextFormat("%s %d", placar[i].nome, placar[i].pontos), g->screenWidth/2, 100 + 60*i, 50, WHITE);
+        }
         EndDrawing();
     }
-
+    fclose(ranking);
 }
 
 //------------------------------------------------------------------------------------
@@ -38,13 +114,17 @@ int main(void)
     game.screenWidth = 1000;
     game.screenHeight = 600;
 
+
+
     InitWindow(game.screenWidth, game.screenHeight, "o jogo");
     SetTargetFPS(60);
+
+    char* nome = NomeJogador(game.screenWidth, game.screenHeight);
 
     InitGame(&game);
 
     GamePlay(&game);
-    GameOver(&game);
+    GameOver(&game, nome);
     
     return 0;
 }
@@ -65,6 +145,7 @@ void InitGame(Game *g)
     g->player.pos = (Rectangle){150, 300, STD_SIZE_X, STD_SIZE_Y};
     g->player.color = BLUE;
     g->player.speed = 6;
+    g->player.pontos = 0;
     g->player.special = 0;
     g->player.numero_tiros = 2;
     g->player.tiros[0].existe = false;
@@ -109,7 +190,7 @@ void UpdateGame(Game *g)
 
 
 
-    for (int i; i < map->num_enemies; i++)
+    for (int i = 0; i < map->num_enemies; i++)
     {
         if (!map->enemies[i].draw_enemy)
             continue;
@@ -165,14 +246,9 @@ void DrawGame(Game *g)
     // multiplicado por 1.5 pra encaixar melhor no tamanho do player
     DrawTextureEx(g->sprite_player, (Vector2){g->player.pos.x, g->player.pos.y}, 0.0, g->player.pos.width / 506.0 , WHITE);
 
-    EndDrawing();
-}
+    DrawText(TextFormat("Pontos: %d", g->player.pontos), 10, 10, 30, WHITE);
 
-// Update and Draw (one frame)
-void UpdateDrawFrame(Game *g)
-{
-    UpdateGame(g);
-    DrawGame(g);
+    EndDrawing();
 }
 
 void draw_borders(Game *g)

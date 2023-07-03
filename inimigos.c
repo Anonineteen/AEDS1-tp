@@ -7,6 +7,7 @@ void zerar_inimigo(Enemy* en) {
     for(int i = 0; i < 2; i++) {
         en->tiros[i].existe = false;
     }
+    en->direction = KEY_RIGHT;
     en->armadura = 0;
 } 
 

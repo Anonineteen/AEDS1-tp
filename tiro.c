@@ -44,8 +44,8 @@ void jogador_atira(Player* player){
             Tiro novo_tiro = player->tiros[i];
             novo_tiro.pos.x = player->pos.x + player->pos.width/2 - 5;
             novo_tiro.pos.y = player->pos.y + player->pos.height/2 - 5;
-            novo_tiro.pos.width = 10;
-            novo_tiro.pos.height = 10;
+            novo_tiro.pos.width = STD_SIZE_X/3.0;
+            novo_tiro.pos.height = STD_SIZE_Y/3.0;
             novo_tiro.speed = player->speed * 1.5;
             novo_tiro.direcaox = player->direcaox;
             novo_tiro.direcaoy = player->direcaoy;
