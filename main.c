@@ -35,8 +35,8 @@ void GameOver(Game* g) {
 int main(void)
 {
     Game game;
-    game.screenWidth = 800;
-    game.screenHeight = 450;
+    game.screenWidth = 1000;
+    game.screenHeight = 600;
 
     InitWindow(game.screenWidth, game.screenHeight, "o jogo");
     SetTargetFPS(60);
