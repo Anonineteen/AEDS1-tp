@@ -11,6 +11,9 @@
 #define STD_SIZE_Y 30
 #define SCREEN_BORDER 4
 
+#define INIMIGO_DIFICIL (Enemy) {.speed=10, .pos = (Rectangle){.width=STD_SIZE_X*0.8,.height=STD_SIZE_Y*0.8}, .color=GREEN}
+#define INIMIGO_COMUM (Enemy) {.speed=6, .pos = (Rectangle){.width=STD_SIZE_X,.height=STD_SIZE_Y}, .color=BLACK}
+
 typedef struct Tiro {
     Rectangle pos;
     Color color;
@@ -28,14 +31,17 @@ typedef struct Player
     int special;
     int direcaox;
     int direcaoy;
-    Tiro tiro;
+    Tiro tiros[2];
+    int numero_tiros;
 } Player;
 
 typedef struct Enemy
 {
     Rectangle pos;
     Color color;
+    Tiro tiros[2];
     int speed;
+    int armadura;
     int direction;
     int draw_enemy;
     int has_key;
@@ -60,6 +66,8 @@ typedef struct Map
 typedef struct Game
 {
     Map maps[10];
+    Texture2D sprite_player;
+    Texture2D sprite_inimigo;
     int num_maps;
     int curr_map;
     Player player;
@@ -83,11 +91,16 @@ void draw_borders(Game *g);
 void draw_map(Game *g);
 void update_enemy_pos(Game *g, Enemy *e);
 void update_hero_pos(Game *g);
-void mata_inimigo(Enemy* inimigo, Map* map);
+void ataca_inimigo(Enemy* inimigo, Map* map);
 
 int barrier_collision(Map *m, Rectangle *t);
 void map0_setup(Game *g);
 void map1_setup(Game *g);
 void map2_setup(Game *g);
+void map3_setup(Game *g);
+void map4_setup(Game *g);
+void map5_setup(Game *g);
+void map6_setup(Game *g);
+void map7_setup(Game *g);
 
 #endif

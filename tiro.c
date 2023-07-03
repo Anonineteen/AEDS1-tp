@@ -28,7 +28,7 @@ void colide_inimigo_tiro(Tiro* tiro, Map* map) {
         Enemy* enemy = &map->enemies[i];
         if(enemy->draw_enemy) {
             if(CheckCollisionRecs(enemy->pos, tiro->pos)) {
-                mata_inimigo(enemy, map);
+                ataca_inimigo(enemy, map);
                 tiro->existe = false;
                 return;
             }
@@ -37,23 +37,22 @@ void colide_inimigo_tiro(Tiro* tiro, Map* map) {
 }
 
 void jogador_atira(Player* player){
-    if(IsKeyPressed(KEY_SPACE) && !player->tiro.existe){
-        // Cria um novo tiro na mesma posição do jogador,
-        // com duas vezes a velocidade do jogador e na mesma direção do jogador
-        Tiro novo_tiro;
-        novo_tiro.pos.x = player->pos.x;
-        novo_tiro.pos.y = player->pos.y;
-        novo_tiro.pos.width = 10;
-        novo_tiro.pos.height = 10;
-        novo_tiro.color = BLUE;
-        novo_tiro.speed = player->speed * 1.5;
-        novo_tiro.direcaox = player->direcaox;
-        novo_tiro.direcaoy = player->direcaoy;
-        if(player->direcaox == 0 && player->direcaoy == 0) {
-            novo_tiro.direcaox = 1;
-        }
-        novo_tiro.existe = true;
+    for(int i = 0; i < player->numero_tiros; i++) {
+        if(!player->tiros[i].existe && IsKeyPressed(KEY_SPACE) ){
+            // Cria um novo tiro na mesma posição do jogador,
+            // com duas vezes a velocidade do jogador e na mesma direção do jogador
+            Tiro novo_tiro = player->tiros[i];
+            novo_tiro.pos.x = player->pos.x + player->pos.width/2 - 5;
+            novo_tiro.pos.y = player->pos.y + player->pos.height/2 - 5;
+            novo_tiro.pos.width = 10;
+            novo_tiro.pos.height = 10;
+            novo_tiro.speed = player->speed * 1.5;
+            novo_tiro.direcaox = player->direcaox;
+            novo_tiro.direcaoy = player->direcaoy;
+            novo_tiro.existe = true;
 
-        player->tiro = novo_tiro;
+            player->tiros[i] = novo_tiro;
+            break;
+        }
     }
 }
