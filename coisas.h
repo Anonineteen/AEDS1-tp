@@ -7,8 +7,8 @@
 //----------------------------------------------------------------------------------
 // Some Defines
 //----------------------------------------------------------------------------------
-#define STD_SIZE_X 30
-#define STD_SIZE_Y 30
+#define STD_SIZE_X 50
+#define STD_SIZE_Y 50
 #define SCREEN_BORDER 4
 
 #define INIMIGO_DIFICIL (Enemy) {.speed=10, .pos = (Rectangle){.width=STD_SIZE_X*0.8,.height=STD_SIZE_Y*0.8}, .color=GREEN}

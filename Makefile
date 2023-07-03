@@ -4,7 +4,7 @@ LIBS=-l:libraylib.a -pthread -ldl -lm -lxcb -lX11
 # Quando quiser adicionar um módulo novo, coloque
 # sempre $(CFLAGS) e $(LIBS) no final!
 
-jogo: main.c tiro.o inimigos.o
+jogo: main.c tiro.o inimigos.o coisas.h
 	gcc main.c tiro.o inimigos.o -o jogo $(CFLAGS) $(LIBS)
 
 tiro.o: tiro.c tiro.h
