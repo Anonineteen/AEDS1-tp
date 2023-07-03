@@ -26,10 +26,10 @@ char* NomeJogador(int largura, int altura) {
             int tam = strlen(nome);
             if(tam < tam_max-2 && ('A' <= codigo && codigo <= 'Z') ||
                ('0' <= codigo && codigo <= '9') || (codigo == ' ')) {
-                nome[tam] = GetCharPressed();
-                if(nome[tam] == ' ') {
-                    nome[tam] = '_';
+                if(codigo == ' ') {
+                    codigo = '_';
                 }
+                nome[tam] = codigo;
                 nome[tam+1] = '\0';
             } else if (codigo == KEY_BACKSPACE && tam > 0){
                 nome[tam-1] = '\0';
